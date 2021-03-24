@@ -41,11 +41,11 @@ modalCart.addEventListener('click', (event) => { //получаем элемен
 
 //добавление scroll smooth (плавный скролл)
 
-(function () {
+{
 	const scrollLinks = document.querySelectorAll('a.scroll-link');
 
 	for (const scrollLink of scrollLinks) {
-		scrollLinks.addEventListener('click', function (event) {
+		scrollLink.addEventListener('click', function (event) {
 			event.preventDefault();
 			const id = scrollLink.getAttribute('href');
 			document.querySelector(id).scrollIntoView({
@@ -54,26 +54,25 @@ modalCart.addEventListener('click', (event) => { //получаем элемен
 			})
 		});
 	}
-})();
+}
 
 //goods
 
 const more = document.querySelector('.more'),
-	navigationItem = document.querySelectorAll('.navigation-item'),
+	navigationLink = document.querySelectorAll('.navigation-link'),
 	longGoodsList = document.querySelector('.long-goods-list');
 
-const getGoods = async function () { //функция для получения данных
-	const result = await fetch('db/db.json');
+const getGoods = async function () { //функция для получения товаров
+	const result = await fetch('db/db.json'); //получение из файла db.json
 	if (!result.ok) {
 		throw 'Ошибка! ' + result.status;
 	}
 	return result.json();
 };
 
-const createCard = function (objCard) {
+const createCard = function (objCard) { //функция для создания карточек
 	const card = document.createElement('div');
 	card.className = 'col-lg-3 col-sm-6';
-	console.log(objCard);
 
 
 	card.innerHTML = `
@@ -91,7 +90,7 @@ const createCard = function (objCard) {
 	return card;
 }
 
-const renderCards = function (data) {
+const renderCards = function (data) { //выводим полученные карточки на страницу 
 	longGoodsList.textContent = '';
 	const cards = data.map(createCard)
 	// cards.forEach(function (card) { //получение карточек первый вариант
@@ -102,9 +101,28 @@ const renderCards = function (data) {
 };
 
 more.addEventListener('click', function (event) {
-	event.preventDefault(); //убирает стандартное поведение браузера (не перезагружает страницу при собитии)
+	event.preventDefault(); //убирает стандартное поведение браузера (не перезагружает страницу при событии)
 	getGoods().then(renderCards);
 	/*получаем ответ от сервера с данными состоящими из массива, затем вызывается функция renderCards, 
 	в дата передаются данные с сервера  в строке 92 - каждый объект из массива добавляется в createCard, 
 	созданны карточки и записанны в переменную cards и затем они отправляются на страницу в элемент longGoodsList*/
 });
+
+const filterCards = function (field, value) {
+	getGoods().then(function (data) {
+			const filteredGoods = data.filter(function (good) {
+				return good[field] === value
+			});
+			return filteredGoods;
+		})
+		.then(renderCards);
+};
+
+navigationLink.forEach(function (link) {
+	link.addEventListener('click', function (event) { //перебираем все ссылки навигации
+		event.preventDefault();
+		const field = link.dataset.field;
+		const value = link.textContent;
+		filterCards(field, value);
+	})
+})
