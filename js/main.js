@@ -16,7 +16,9 @@ const buttonCart = document.querySelector('.button-cart'),
 	more = document.querySelector('.more'),
 	navigationLink = document.querySelectorAll('.navigation-link'),
 	longGoodsList = document.querySelector('.long-goods-list'),
-	buttons = document.querySelectorAll('.button');
+	cartTableGoods = document.querySelector('.cart-table__goods'),
+	cardTableTotal = document.querySelector('.card-table__total');
+
 
 const getGoods = async () => { //функция для получения товаров
 	const result = await fetch('db/db.json'); //получение из файла db.json
@@ -26,7 +28,127 @@ const getGoods = async () => { //функция для получения тов
 	return result.json();
 };
 
+const cart = { // создание методов
+	cartGoods: [{
+			id: "099",
+			name: "Часы Dior",
+			price: 999,
+			count: 2,
+		},
+		{
+			id: "090",
+			name: "Кеды",
+			price: 23,
+			count: 3,
+		},
+	], //массив для товаров
+	renderCart() {
+		cartTableGoods.textContent = '';
+		this.cartGoods.forEach(({
+			id,
+			name,
+			price,
+			count
+		}) => {
+			const trGood = document.createElement('tr');
+			trGood.className = 'cart-item';
+			trGood.dataset.id = id;
+
+			trGood.innerHTML = `
+				<td>${name}</td>
+				<td>${price}</td>
+				<td><button class="cart-btn-minus">-</button></td>
+				<td>${count}</td>
+				<td><button class="cart-btn-plus">+</button></td>
+				<td>${price * count}</td>
+				<td><button class="cart-btn-delete">x</button></td>
+			`;
+			cartTableGoods.append(trGood);
+		});
+
+		const totalPrice = this.cartGoods.reduce((sum, item) => { //перебор с помощью reduce, первое значение записывает 0, далее то что возвращается
+			return sum + (item.price * item.count); //первая итерация обрабатывает первый объект и значение возвращается в sum
+		}, 0);
+
+		cardTableTotal.textContent = totalPrice + '$'
+
+	},
+	deleteGood(id) { // метод для удаления товаров из корзины с объектами лучше использовать .f
+		this.cartGoods = this.cartGoods.filter(item => id !== item.id);
+		this.renderCart();
+	},
+	minusGood(id) { //убавить товар в корзине
+		for (const item of this.cartGoods) {
+			if (item.id === id) {
+				if (item.count <= 1) {
+					this.deleteGood(id)
+				} else {
+					item.count--;
+				}
+				break;
+			}
+		}
+		this.renderCart();
+	},
+	plusGood(id) { //прибавить товар в корзине
+		for (const item of this.cartGoods) {
+			if (item.id === id) {
+				item.count++;
+				break;
+			}
+		}
+		this.renderCart();
+	},
+	addCartGoods(id) {
+		const goodItem = this.cartGoods.find(item => item.id === id) // find возвращает именно элемент
+		if (goodItem) {
+			this.plusGood(id);
+		} else {
+			getGoods()
+				.then(data => data.find(item => item.id === id))
+				.then(({
+					id,
+					name,
+					price
+				}) => {
+					this.cartGoods.push({
+						id,
+						name,
+						price,
+						count: 1
+					})
+				})
+		}
+	},
+}
+
+document.body.addEventListener('click', event => { //получаем кнопку с ценой
+	const addToCart = event.target.closest('.add-to-cart');
+	if (addToCart) {
+		cart.addCartGoods(addToCart.dataset.id);
+	}
+});
+
+cartTableGoods.addEventListener('click', event => {
+	const target = event.target;
+
+	if (target.tagName === 'BUTTON') {
+		const id = target.closest('.cart-item').dataset.id;
+		if (target.classList.contains('cart-btn-delete')) {
+			cart.deleteGood(id);
+		};
+
+		if (target.classList.contains('cart-btn-minus')) {
+			cart.minusGood(id);
+		};
+		if (target.classList.contains('cart-btn-plus')) {
+			cart.plusGood(id);
+		};
+	}
+});
+
 const openModal = () => {
+	cart.renderCart();
 	modalCart.classList.add('show');
 	document.addEventListener('keydown', escapeHandler); //зарытие модального окна по кнопке escape
 };
@@ -146,4 +268,4 @@ navigationLink.forEach(function (link) { //в link получаем все сс�
 			getGoods().then(renderCards);
 		}
 	})
-})
+});
