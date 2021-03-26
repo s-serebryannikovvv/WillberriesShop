@@ -12,13 +12,25 @@ const mySwiper = new Swiper('.swiper-container', {
 
 const buttonCart = document.querySelector('.button-cart'),
 	modalCart = document.querySelector('#modal-cart'),
-	modalClose = document.querySelector('.modal-close');
+	modalClose = document.querySelector('.modal-close'),
+	more = document.querySelector('.more'),
+	navigationLink = document.querySelectorAll('.navigation-link'),
+	longGoodsList = document.querySelector('.long-goods-list'),
+	buttons = document.querySelectorAll('.button');
 
-const openModal = function () {
+const getGoods = async () => { //функция для получения товаров
+	const result = await fetch('db/db.json'); //получение из файла db.json
+	if (!result.ok) {
+		throw 'Ошибка! ' + result.status;
+	}
+	return result.json();
+};
+
+const openModal = () => {
 	modalCart.classList.add('show');
 	document.addEventListener('keydown', escapeHandler); //зарытие модального окна по кнопке escape
 };
-const closeModal = function () {
+const closeModal = () => {
 	modalCart.classList.remove('show');
 };
 
@@ -45,9 +57,22 @@ modalCart.addEventListener('click', (event) => { //получаем элемен
 	const scrollLinks = document.querySelectorAll('a.scroll-link');
 
 	for (const scrollLink of scrollLinks) {
-		scrollLink.addEventListener('click', function (event) {
+		scrollLink.addEventListener('click', event => {
 			event.preventDefault();
 			const id = scrollLink.getAttribute('href');
+			document.querySelector(id).scrollIntoView({
+				behavior: 'smooth',
+				block: 'start'
+			})
+		});
+	}
+} {
+	const more = document.querySelectorAll('a.more');
+
+	for (const oneMore of more) {
+		oneMore.addEventListener('click', function (event) {
+			event.preventDefault();
+			const id = oneMore.getAttribute('href');
 			document.querySelector(id).scrollIntoView({
 				behavior: 'smooth',
 				block: 'start'
@@ -58,32 +83,28 @@ modalCart.addEventListener('click', (event) => { //получаем элемен
 
 //goods
 
-const more = document.querySelector('.more'),
-	navigationLink = document.querySelectorAll('.navigation-link'),
-	longGoodsList = document.querySelector('.long-goods-list');
 
-const getGoods = async function () { //функция для получения товаров
-	const result = await fetch('db/db.json'); //получение из файла db.json
-	if (!result.ok) {
-		throw 'Ошибка! ' + result.status;
-	}
-	return result.json();
-};
-
-const createCard = function (objCard) { //функция для создания карточек
-	const card = document.createElement('div');
-	card.className = 'col-lg-3 col-sm-6';
+const createCard = function ({
+	label,
+	name,
+	img,
+	description,
+	id,
+	price
+}) { //функция для создания карточек,
+	const card = document.createElement('div'); // в скобках получаем ключи объекта и проводим деструктуризацию, 
+	card.className = 'col-lg-3 col-sm-6'; //сразу присваивая значения переменным (это описание к первой строке)
 
 
 	card.innerHTML = `
 		<div class="goods-card">
-		${objCard.label ? `<span class="label">${objCard.label}</span>` : '' }
+		${label ? `<span class="label">${label}</span>` : ''}
 				
-				<img src="db/${objCard.img}" alt="${objCard.name}" class="goods-image">
-				<h3 class="goods-title">${objCard.name}</h3>
-				<p class="goods-description">${objCard.description}</p>
-				<button class="button goods-card-btn add-to-cart" data-id="${objCard.id}">
-					<span class="button-price">$${objCard.price}</span>
+				<img src="db/${img}" alt="${name}" class="goods-image">
+				<h3 class="goods-title">${name}</h3>
+				<p class="goods-description">${description}</p>
+				<button class="button goods-card-btn add-to-cart" data-id="${id}">
+					<span class="button-price">$${price}</span>
 				</button>
 		</div>
 		`;
@@ -100,7 +121,7 @@ const renderCards = function (data) { //выводим полученные ка
 	document.body.classList.add('show-goods')
 };
 
-more.addEventListener('click', function (event) {
+more.addEventListener('click', event => {
 	event.preventDefault(); //убирает стандартное поведение браузера (не перезагружает страницу при событии)
 	getGoods().then(renderCards);
 	/*получаем ответ от сервера с данными состоящими из массива, затем вызывается функция renderCards, 
@@ -109,20 +130,20 @@ more.addEventListener('click', function (event) {
 });
 
 const filterCards = function (field, value) {
-	getGoods().then(function (data) {
-			const filteredGoods = data.filter(function (good) {
-				return good[field] === value
-			});
-			return filteredGoods;
-		})
+	getGoods()
+		.then(data => data.filter(good => good[field] === value)) //функцианальное выражение
 		.then(renderCards);
 };
 
-navigationLink.forEach(function (link) {
-	link.addEventListener('click', function (event) { //перебираем все ссылки навигации
+navigationLink.forEach(function (link) { //в link получаем все ссылки навигации 
+	link.addEventListener('click', event => { //перебираем все ссылки навигации
 		event.preventDefault();
-		const field = link.dataset.field;
+		const field = link.dataset.field; //в значение field мы записывает содержимое дата атрибута
 		const value = link.textContent;
-		filterCards(field, value);
+		if (value !== 'All') {
+			filterCards(field, value);
+		} else {
+			getGoods().then(renderCards);
+		}
 	})
 })
